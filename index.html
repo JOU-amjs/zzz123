@@ -7115,7 +7115,7 @@
       // 渲染月度统计
       let totalProfit = 0;
       Object.keys(monthStats)
-        .sort((a, b) => a - b)
+        .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
         .forEach((month) => {
           const row = tableBody.insertRow();
           const monthCell = row.insertCell(0);
