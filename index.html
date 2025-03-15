@@ -7115,8 +7115,32 @@
       // 渲染月度统计
       let totalProfit = 0;
       Object.keys(monthStats)
-        .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
-        .forEach((month) => {
+        .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
+        .map(month => {
+          const { hit, miss, count, profit } = monthStats[month];
+          const total = hit + miss;
+          const hitRate =
+            total > 0 ? toFixedNumber((hit / total) * 100) + "%" : "0%";
+          const avg = count / total;
+          totalProfit += profit;
+          let currentCapital = '--';
+          if (isMock) {
+            mockCapital += profit;
+            currentCapital = toFixedNumber(mockCapital);
+          }
+
+          return {
+            a: month,
+            b: hit,
+            c: miss,
+            d: hitRate,
+            e: toFixedNumber(avg, 1),
+            f: toFixedNumber(profit),
+            g: currentCapital
+          }
+        })
+        .reverse()
+        .forEach(month => {
           const row = tableBody.insertRow();
           const monthCell = row.insertCell(0);
           const hitCell = row.insertCell(1);
@@ -7126,27 +7150,15 @@
           const profitCell = row.insertCell(5);
           const capitalCell = row.insertCell(6);
 
-          const { hit, miss, count, profit } = monthStats[month];
-          const total = hit + miss;
-          const hitRate =
-            total > 0 ? toFixedNumber((hit / total) * 100) + "%" : "0%";
-          const avg = count / total;
-          totalProfit += profit;
-
-          monthCell.textContent = month;
-          hitCell.textContent = hit;
-          missCell.textContent = miss;
-          rateCell.textContent = hitRate;
-          avgCell.textContent = toFixedNumber(avg, 1);
-          profitCell.textContent = toFixedNumber(profit);
-          profitCell.className = profit > 0 ? 'hit' : 'miss';
-          capitalCell.textContent = '--';
-
-          if (isMock) {
-            mockCapital += profit;
-            capitalCell.textContent = toFixedNumber(mockCapital);
-            capitalCell.className = mockCapital > 0 ? 'hit' : 'miss';
-          }
+          monthCell.textContent = month.a;
+          hitCell.textContent = month.b;
+          missCell.textContent = month.c;
+          rateCell.textContent = month.d;
+          avgCell.textContent = month.e;
+          profitCell.textContent = month.f;
+          profitCell.className = month.f > 0 ? 'hit' : 'miss';
+          capitalCell.textContent = month.g;
+          capitalCell.className = month.g > 0 ? 'hit' : 'miss';
         });
       document.getElementById("totalProfit").textContent = toFixedNumber(totalProfit);
     }
