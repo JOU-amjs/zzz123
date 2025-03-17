@@ -7219,7 +7219,7 @@
       );
 
       if (!referNumber) {
-        return [];
+        return ['没有找到参考数字'];
       }
 
       let excludingReferDate = null;
@@ -7236,11 +7236,13 @@
       }
 
       if (!excludingReferDate) {
-        return [];
+        return ['没有找到排除参考日期'];
       }
 
       // 避免排除偏移不足的情况
-      const index = historyArray.findIndex((item) => item.date === excludingReferDate);
+      const excludingReferDateIndex = historyArray.findIndex((item) => item.date === excludingReferDate);
+      const currentDateIndex = historyArray.findIndex((item) => item.date === currentDate);
+      const index = excludingReferDateIndex - currentDateIndex - 1;
       const unexcludingDays = -excludingOffsetDays - index;
       const excludingStartDate = getOffsetDate(
         excludingReferDate,
@@ -7248,13 +7250,14 @@
       );
 
       // 计算未计入排除的日期
-      const unexcludingDates = [];
+      let unexcludingDate = null;
       if (unexcludingDays > 0) {
-        for (let i = 1; i < unexcludingDays; i++) {
-          const date = new Date(excludingReferDate);
-          date.setDate(date.getDate() + i + index);
-          unexcludingDates.push(formatDate(date));
-        }
+        const date = new Date(excludingReferDate);
+        date.setDate(date.getDate() - excludingOffsetDays);
+        unexcludingDate = {
+          original: formatDate(date),
+          now: excludingStartDate
+        }; 
       }
 
       const excludingNumbers = [];
@@ -7268,15 +7271,17 @@
         } catch { }
       }
 
-      const uniqueExcludingNumbers = [...new Set(excludingNumbers)];
+      const uniqueExcludingNumbers = [...new Set(excludingNumbers)].sort((a, b) => a - b);
       if (isReverse) {
-        return { numbers: uniqueExcludingNumbers, unexcludingDates };
+        return { numbers: uniqueExcludingNumbers, unexcludingDate };
       }
       const finalNumbers = allNumbers.filter(
         (num) => !uniqueExcludingNumbers.includes(num)
       );
-      return { numbers: finalNumbers, unexcludingDates };
+      return { numbers: finalNumbers, unexcludingDate };
     }
+
+    const buildUnexcludingDatesStr = dateObj => dateObj ? (`<span class="miss">【从${dateObj.original}更改到${dateObj.now}开始排除】</span>`) : '';
 
     function analyzeHistory() {
       const startDate = document.getElementById("historyStartDate").value;
@@ -7297,7 +7302,7 @@
       const list = [];
       while (lastDate >= currentDate) {
         const dateStr = formatDate(currentDate);
-        const { numbers: finalNumbers, unexcludingDates } = calculateFinalNumbers(dateStr);
+        const { numbers: finalNumbers, unexcludingDate } = calculateFinalNumbers(dateStr);
         const winningNumber = getWinningNumber(dateStr);
         const isHit = finalNumbers.includes(winningNumber);
 
@@ -7319,9 +7324,7 @@
         }
         monthStats[month].profit += profit;
 
-        const unexcludingDatesStr = unexcludingDates.length > 0 ? ('，' + unexcludingDates.join('，') + '未计入排除') : '';
         let f = '--';
-
         if (isMock) {
           mockCapital += profit;
           f = toFixedNumber(mockCapital);
@@ -7330,7 +7333,7 @@
         list.push({
           isHit,
           a: dateStr,
-          b: `（${finalNumbers.length}个${unexcludingDatesStr}）${finalNumbers.join(",  ")}`,
+          b: `（${finalNumbers.length}个）${buildUnexcludingDatesStr(unexcludingDate)}${finalNumbers.join(",  ")}`,
           c: winningNumber,
           d: winningNumber ? isHit ? "命中" : "未命中" : "未开奖",
           e: toFixedNumber(perItemAmount) + '/' + toFixedNumber(isHit ? profit : -perItemAmount * finalNumbers.length),
@@ -7350,7 +7353,7 @@
         const cell6 = row.insertCell(5);
 
         cell1.textContent = item.a;
-        cell2.textContent = item.b;
+        cell2.innerHTML = item.b;
         cell3.textContent = item.c;
         cell4.textContent = item.d;
         cell4.className = item.c ? item.isHit ? "hit" : "miss" : "not-open";
@@ -7371,7 +7374,7 @@
         .getElementsByTagName("tbody")[0];
       table.innerHTML = "";
 
-      const { numbers: finalNumbers, unexcludingDates } = calculateFinalNumbers(date);
+      const { numbers: finalNumbers, unexcludingDate } = calculateFinalNumbers(date);
       const winningNumber = getWinningNumber(date);
       const isHit = finalNumbers.includes(winningNumber);
 
@@ -7382,8 +7385,7 @@
       const cell4 = row.insertCell(3);
 
       cell1.textContent = date;
-      const unexcludingDatesStr = unexcludingDates.length > 0 ? ('，' + unexcludingDates.join('，') + '未计入排除') : ''
-      cell2.textContent = `（${finalNumbers.length}个${unexcludingDatesStr}）${finalNumbers.join(",  ")}`;
+      cell2.innerHTML = `（${finalNumbers.length}个）${buildUnexcludingDatesStr(unexcludingDate)}${finalNumbers.join(",  ")}`;
       cell3.textContent = winningNumber;
       cell4.textContent = winningNumber ? isHit ? "命中" : "未命中" : "未开奖";
       cell4.className = winningNumber ? isHit ? "hit" : "miss" : "not-open";
