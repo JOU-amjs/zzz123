@@ -7051,6 +7051,12 @@
           .then((response) => response.json())
           .then(({ data }) => {
             data = data.filter(item => /^2025/.test(item.expect));
+      
+            const dataObj = {};
+            for (const item of data) {
+              dataObj[item.expect] = item;
+            }
+            data = Object.values(dataObj);
             historyArray.unshift(
               ...data.map(item => ({
                 date: item.openTime.replace(/\s.+$/, ''),
